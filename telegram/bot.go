@@ -161,13 +161,18 @@ func (b *Bot) cmdStatus(chatID, replyToID int64) {
 	snap := b.cfg.Get()
 	uptime := time.Since(b.startTime).Round(time.Second)
 
+	timeoutDisplay := snap.CommandTimeout.String()
+	if snap.CommandTimeout <= 0 {
+		timeoutDisplay = "Disabled (unlimited)"
+	}
+
 	statusText := fmt.Sprintf(`📊 <b>Relay Status</b>
 
 • <b>Status:</b> 🟢 Running
 • <b>Uptime:</b> %s
 • <b>Working Directory:</b> <code>%s</code>
 • <b>Shell:</b> <code>%s</code>
-• <b>Timeout:</b> %v
+• <b>Timeout:</b> %s
 • <b>Stream Interval:</b> %v
 • <b>Allowed Users:</b> %d configured
 
@@ -177,7 +182,7 @@ func (b *Bot) cmdStatus(chatID, replyToID int64) {
 		uptime,
 		htmlEscape(snap.WorkingDir),
 		htmlEscape(snap.ShellType),
-		snap.CommandTimeout,
+		timeoutDisplay,
 		snap.StreamEditInterval,
 		len(snap.AllowedUserIDs),
 		htmlEscape(snap.ContinueCommand),
@@ -253,8 +258,14 @@ func (b *Bot) executeAgent(chatID, msgID int64, prompt string, isNew bool) {
 		return
 	}
 
-	// Create cancellable context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), snap.CommandTimeout)
+	// Timeout disabled when CommandTimeout <= 0; /cancel is the abort path.
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if snap.CommandTimeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), snap.CommandTimeout)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
 	b.activeTasks[chatID] = cancel
 	b.mu.Unlock()
 

@@ -165,9 +165,14 @@ func (c *Config) Reload() error {
 		return fmt.Errorf("NEW_COMMAND is required in %s or environment", c.snapshot.EnvFilePath)
 	}
 
-	timeoutSec, _ := strconv.Atoi(getEnv("COMMAND_TIMEOUT_SECONDS", "600"))
-	if timeoutSec <= 0 {
-		timeoutSec = 600
+	// Unset or empty defaults to 600s; 0 (or negative) disables the timeout.
+	timeoutEnv := getEnv("COMMAND_TIMEOUT_SECONDS", "")
+	timeoutSec := 600
+	if v, err := strconv.Atoi(timeoutEnv); err == nil {
+		if v <= 0 {
+			v = 0
+		}
+		timeoutSec = v
 	}
 
 	streamIntervalMs, _ := strconv.Atoi(getEnv("STREAM_EDIT_INTERVAL_MS", "1500"))

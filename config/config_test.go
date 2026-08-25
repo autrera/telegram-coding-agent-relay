@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func writeEnv(t *testing.T, workingDir string) string {
@@ -51,5 +52,32 @@ func TestSetWorkingDirStillValidates(t *testing.T) {
 	os.WriteFile(file, []byte("x"), 0o600)
 	if _, err := cfg.SetWorkingDir(file); err == nil {
 		t.Fatal("expected error for non-directory path")
+	}
+}
+
+func TestCommandTimeoutParsing(t *testing.T) {
+	dir := t.TempDir()
+	cases := []struct {
+		envVal string
+		want   time.Duration
+	}{
+		{"", 600 * time.Second},        // unset/empty -> default
+		{"0", 0},                       // explicit zero -> disabled
+		{"\"0\"", 0},                   // quoted zero -> disabled
+		{"120", 120 * time.Second},     // positive
+		{"-5", 0},                      // negative -> disabled
+		{"garbage", 600 * time.Second}, // invalid -> default
+	}
+	for _, tc := range cases {
+		path := writeEnv(t, dir)
+		content, _ := os.ReadFile(path)
+		os.WriteFile(path, []byte(string(content)+"COMMAND_TIMEOUT_SECONDS="+tc.envVal+"\n"), 0o600)
+		cfg, err := Load(path)
+		if err != nil {
+			t.Fatalf("env %q: unexpected error: %v", tc.envVal, err)
+		}
+		if got := cfg.Get().CommandTimeout; got != tc.want {
+			t.Errorf("env %q: got %v, want %v", tc.envVal, got, tc.want)
+		}
 	}
 }
