@@ -46,6 +46,12 @@ func (b *Bot) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to connect to Telegram: %w", err)
 	}
 
+	if err := b.client.SetMyCommands(DefaultBotCommands); err != nil {
+		log.Printf("[WARN] Failed to register bot commands: %v", err)
+	} else {
+		log.Printf("[INFO] Bot commands registered with Telegram")
+	}
+
 	log.Printf("[INFO] Telegram Bot started as @%s (ID: %d)", me.Username, me.ID)
 	log.Printf("[INFO] Active Working Directory: %s", snap.WorkingDir)
 
@@ -188,6 +194,9 @@ func (b *Bot) cmdReload(chatID, replyToID int64) {
 	}
 	snap := b.cfg.Get()
 	b.client.UpdateToken(snap.TelegramBotToken)
+	if err := b.client.SetMyCommands(DefaultBotCommands); err != nil {
+		log.Printf("[WARN] Failed to register bot commands: %v", err)
+	}
 	log.Printf("[INFO] Configuration reloaded via Telegram /reload")
 	_, _ = b.client.SendMessage(chatID, "✅ <b>Configuration reloaded successfully from .env</b>", "HTML", replyToID)
 }
@@ -286,4 +295,17 @@ func htmlEscape(s string) string {
 	s = strings.ReplaceAll(s, "<", "&lt;")
 	s = strings.ReplaceAll(s, ">", "&gt;")
 	return s
+}
+
+// DefaultBotCommands is the command list registered with Telegram for the
+// [/] menu and slash autocomplete.
+var DefaultBotCommands = []BotCommand{
+	{Command: "new", Description: "Start a brand new conversation"},
+	{Command: "c", Description: "Continue previous conversation"},
+	{Command: "cd", Description: "Switch working directory"},
+	{Command: "pwd", Description: "View current working directory"},
+	{Command: "status", Description: "View relay status and uptime"},
+	{Command: "reload", Description: "Reload .env configuration dynamically"},
+	{Command: "cancel", Description: "Abort the currently running agent command"},
+	{Command: "help", Description: "Show help and command menu"},
 }

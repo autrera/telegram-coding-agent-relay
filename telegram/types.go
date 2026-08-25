@@ -38,3 +38,10 @@ type APIResponse[T any] struct {
 	ErrorCode   int    `json:"error_code,omitempty"`
 	Description string `json:"description,omitempty"`
 }
+
+// BotCommand represents a command registered with Telegram via setMyCommands,
+// powering the client-side [/] menu button and slash autocomplete.
+type BotCommand struct {
+	Command     string `json:"command"`     // Text of the command (1-32 chars, lowercase, no leading slash)
+	Description string `json:"description"` // Description of the command (1-256 chars)
+}

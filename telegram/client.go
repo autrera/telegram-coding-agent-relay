@@ -176,3 +176,16 @@ func (c *Client) SendChatAction(chatID int64, action string) {
 	}
 	_ = c.postJSON("sendChatAction", payload, nil)
 }
+
+// SetMyCommands registers the bot's command list with Telegram, enabling the
+// command menu button and slash autocomplete in Telegram clients.
+func (c *Client) SetMyCommands(commands []BotCommand) error {
+	var res APIResponse[bool]
+	if err := c.postJSON("setMyCommands", map[string]any{"commands": commands}, &res); err != nil {
+		return err
+	}
+	if !res.OK {
+		return fmt.Errorf("telegram API error (%d): %s", res.ErrorCode, res.Description)
+	}
+	return nil
+}
