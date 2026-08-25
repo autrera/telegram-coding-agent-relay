@@ -13,16 +13,16 @@ import (
 
 // Snapshot represents an immutable point-in-time configuration.
 type Snapshot struct {
-	TelegramBotToken    string
-	AllowedUserIDs      map[int64]bool
-	WorkingDir          string
-	ContinueCommand     string
-	NewCommand          string
-	CommandTimeout      time.Duration
-	StreamEditInterval  time.Duration
-	ShellType           string
-	ControlPort         int
-	EnvFilePath         string
+	TelegramBotToken   string
+	AllowedUserIDs     map[int64]bool
+	WorkingDir         string
+	ContinueCommand    string
+	NewCommand         string
+	CommandTimeout     time.Duration
+	StreamEditInterval time.Duration
+	ShellType          string
+	ControlPort        int
+	EnvFilePath        string
 }
 
 // Config manages the application configuration with thread-safe hot-reloading.
@@ -151,6 +151,9 @@ func (c *Config) Reload() error {
 
 	workingDir := getEnv("WORKING_DIR", ".")
 	workingDir = ExpandPath(workingDir)
+	if stat, err := os.Stat(workingDir); err != nil || !stat.IsDir() {
+		return fmt.Errorf("WORKING_DIR does not exist or is not a directory: %q", workingDir)
+	}
 
 	continueCmd := getEnv("CONTINUE_COMMAND", "")
 	if continueCmd == "" {

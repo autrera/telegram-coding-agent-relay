@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"runtime"
@@ -85,6 +86,7 @@ func (e *Executor) Execute(ctx context.Context, cmdTemplate, prompt, workingDir,
 
 	cmd, err := e.BuildCommand(ctx, cmdTemplate, prompt, workingDir, shellType)
 	if err != nil {
+		log.Printf("[ERROR] Failed to start command in %s: %v", workingDir, err)
 		return ExecutionResult{
 			Err:      err,
 			Duration: time.Since(start),
@@ -94,16 +96,22 @@ func (e *Executor) Execute(ctx context.Context, cmdTemplate, prompt, workingDir,
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		return ExecutionResult{Err: fmt.Errorf("failed to open stdout pipe: %w", err), Duration: time.Since(start)}
+		startErr := fmt.Errorf("failed to open stdout pipe: %w", err)
+		log.Printf("[ERROR] Failed to start command in %s: %v", workingDir, startErr)
+		return ExecutionResult{Err: startErr, Duration: time.Since(start), ExitCode: 1}
 	}
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		return ExecutionResult{Err: fmt.Errorf("failed to open stderr pipe: %w", err), Duration: time.Since(start)}
+		startErr := fmt.Errorf("failed to open stderr pipe: %w", err)
+		log.Printf("[ERROR] Failed to start command in %s: %v", workingDir, startErr)
+		return ExecutionResult{Err: startErr, Duration: time.Since(start), ExitCode: 1}
 	}
 
 	if err := cmd.Start(); err != nil {
+		startErr := fmt.Errorf("failed to start process: %w", err)
+		log.Printf("[ERROR] Failed to start command in %s: %v", workingDir, startErr)
 		return ExecutionResult{
-			Err:      fmt.Errorf("failed to start process: %w", err),
+			Err:      startErr,
 			Duration: time.Since(start),
 			ExitCode: 1,
 		}

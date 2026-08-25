@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"html"
 	"strings"
 	"sync"
 	"time"
@@ -112,7 +113,13 @@ func (s *StreamSession) Finish(duration time.Duration, exitCode int, execErr err
 	s.mu.Unlock()
 
 	var footer string
-	if execErr != nil || exitCode != 0 {
+	if execErr != nil {
+		if strings.TrimSpace(rawText) == "" {
+			footer = fmt.Sprintf("\n\n❌ <b>Process failed to start:</b>\n<code>%s</code>\n\n❌ <b>Process exited with code %d</b> (took %.1fs)", html.EscapeString(execErr.Error()), exitCode, duration.Seconds())
+		} else {
+			footer = fmt.Sprintf("\n\n❌ <b>Error:</b> <code>%s</code>\n❌ <b>Process exited with code %d</b> (took %.1fs)", html.EscapeString(execErr.Error()), exitCode, duration.Seconds())
+		}
+	} else if exitCode != 0 {
 		footer = fmt.Sprintf("\n\n❌ <b>Process exited with code %d</b> (took %.1fs)", exitCode, duration.Seconds())
 	} else {
 		footer = fmt.Sprintf("\n\n✅ <b>Completed</b> in %.1fs", duration.Seconds())
